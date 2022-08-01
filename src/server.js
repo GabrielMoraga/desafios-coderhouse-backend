@@ -3,10 +3,9 @@ const express = require('express')
 const { Server: HttpServer } = require('http')
 const { Server: Socket } = require('socket.io')
 
-//const ContenedorMemoria = require('../contenedores/ContenedorMemoria.js')
-//const ContenedorArchivo = require('../controllers/ContenedorArchivo.js')
-const MensajesArchivo = require('../controllers/MensajesArchivo.js')
-const ProductosMemoria = require('../controllers/ProductosMemoria.js')
+const ContenedorDB = require('../controllers/ContenedorDB.js')
+
+const {configSQLite3, configMariaDB} = require('./dbConfig.js')
 
 
 //--------------------------------------------
@@ -16,8 +15,9 @@ const app = express()
 const httpServer = new HttpServer(app)
 const io = new Socket(httpServer)
 
-const productosApi = new ProductosMemoria()
-const mensajesApi = new MensajesArchivo('mensajes.json') // Indico ruta del json donde se guardan los mensajes
+//Instancio el contenedor con los manejadores CRUD con Knex, le paso la config de la db y el nombre de la tabla
+const productosApi = new ContenedorDB(configMariaDB.options, 'productos')
+const mensajesApi = new ContenedorDB(configSQLite3.options, 'mensajes')
 
 //--------------------------------------------
 // configuro el socket
@@ -26,12 +26,12 @@ io.on('connection', async socket => {
     console.log('Nuevo cliente conectado!');
 
     // carga inicial de productos
-    socket.emit('productos', productosApi.listarAll());
+    socket.emit('productos', await productosApi.listarAll());
 
     // actualizacion de productos
-    socket.on('update', producto => {
-        productosApi.guardar(producto)
-        io.sockets.emit('productos', productosApi.listarAll());
+    socket.on('update', async producto => {
+        await productosApi.guardar(producto)
+        io.sockets.emit('productos', await productosApi.listarAll());
     })
 
     // carga inicial de mensajes
@@ -55,7 +55,7 @@ app.use(express.static('public'))
 //--------------------------------------------
 // inicio el servidor
 
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 const connectedServer = httpServer.listen(PORT, () => {
     console.log(`Servidor http escuchando en el puerto ${connectedServer.address().port}`)
 })
