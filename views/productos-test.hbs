@@ -1,0 +1,40 @@
+<h1>Productos faker</h1>
+
+{{#if products}}
+
+    <table class="table">
+        <thead>
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">title</th>
+            <th scope="col">price</th>
+            <th scope="col">thumbnail</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        {{#each products}}
+
+            <tr>
+                <th scope="row">{{id}}</th>
+                <td>{{title}}</td>
+                <td>{{price}}</td>
+                {{#if thumbnail}}
+                <td class="w-25">
+
+                    <img class="img-thumbnail" src={{{thumbnail}}} alt="" />
+                </td>
+                {{/if}}
+            </tr>
+
+        {{/each}}
+
+        </tbody>
+    </table>
+
+{{else}}
+
+    <p>No hay products</p>
+
+{{/if}}
+

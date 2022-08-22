@@ -1,4 +1,8 @@
 const express = require('express')
+const router = express.Router();
+const MockAPI = require('../controllers/mockAPI');
+const handelbars = require('express-handlebars')
+const path = require('path')
 
 const { Server: HttpServer } = require('http')
 const { Server: Socket } = require('socket.io')
@@ -51,6 +55,34 @@ io.on('connection', async socket => {
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('public'))
+
+
+// Configuración Handlebars
+app.engine(".hbs", handelbars({
+        extname: ".hbs",
+        defaultLayout: 'main'
+    }
+));
+app.set("view engine", ".hbs");
+
+
+//---------------------------------------------
+// Ruta mock productos
+
+const mock = new MockAPI();
+
+app.get("/api/productos-test", async (req, res) => {
+    mock.popular();
+      const products = mock.obtenerTodos();
+      res.render('productos-test', {
+        products: products
+      })
+      if (products.length == 0) {
+        res.status(404).json({
+          error: "no hay productos cargados",
+        });
+      }
+    });
 
 //--------------------------------------------
 // inicio el servidor
