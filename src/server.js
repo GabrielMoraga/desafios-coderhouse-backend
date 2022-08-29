@@ -29,16 +29,22 @@ const mensajesApi = new ContenedorMongoDB()
 //--------------------------------------------
 // configuro el socket
 
+// Esquema de Normalización
 const user = new schema.Entity("users");
 const text = new schema.Entity("text");
 const mensaje = new schema.Entity("mensaje", {
   autor: user,
   text: text,
 });
-const mensajes = new schema.Entity("mensajes", {
+const mensajesSchema = new schema.Entity("mensajes", {
   mensajes: [mensaje],
 });
 
+/*
+const authors = new schema.Entity('authors')
+const mensaje = new schema.Entity('mensajes', {autor: authors})
+const post = new schema.Entity('post', {mensajes: [mensajes]})
+*/
 
 function print(objeto) {
     console.log(util.inspect(objeto,false,12,true))
@@ -59,41 +65,46 @@ io.on('connection', async socket => {
     })
 
     let listaMensajes = await  mensajesApi.listarAll()
-    //AQUI HAY QUE NORMALIZAR LA LISTA PARA ENVIAR AL FRONT
+    //console.log('Estos son los mensjaes listados', listaMensajes)
 
     // carga inicial de mensajes
     socket.emit('mensajes', listaMensajes);
 
     // actualizacion de mensajes
     socket.on('nuevoMensaje', async data => {
-      const nuevoMensaje = {
-        id: listaMensajes.length+1,
-        autor: {
-          id: data.autor.id,
-          nombre: data.autor.nombre,
-          apellido: data.autor.apellido,
-          edad: data.autor.edad,
-          alias: data.autor.alias,
-          avatar: data.autor.avatar
-        },
-        text: {
+        const nuevoMensaje = {
           id: listaMensajes.length+1,
-          text: data.text,
-        }
-      };
-
-      listaMensajes.push(nuevoMensaje)
-      const originalData = {
-        id: "1",
-        mensajes: listaMensajes,
-      };
-      //console.log(mensajes)
-
-      let normalizedData = normalize(originalData, mensajes);
-      normalizedData = JSON.parse(JSON.stringify(normalizedData))
+          autor: {
+            id: data.autor.id,
+            nombre: data.autor.nombre,
+            apellido: data.autor.apellido,
+            edad: data.autor.edad,
+            alias: data.autor.alias,
+            avatar: data.autor.avatar
+          },
+          text: {
+            id: listaMensajes.length+1,
+            text: data.text,
+          },
+          date: new Date().toLocaleString()
+        };
+  
+        listaMensajes.push(nuevoMensaje)
+        const originalData = {
+          id: 1,
+          mensajes: listaMensajes,
+        };
+        //console.log(mensajes)
+  
+        const normalizedData = normalize(originalData, mensajesSchema);
+        //normalizedData = JSON.parse(JSON.stringify(normalizedData))
+  
+        console.log('Estos son los datos normalizados \n')
+        print(normalizedData)
 
         await mensajesApi.guardar(normalizedData)
         io.sockets.emit('mensajes', await mensajesApi.listarAll());
+
     })
 });
 

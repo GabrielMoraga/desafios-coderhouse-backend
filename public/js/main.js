@@ -55,8 +55,29 @@ formPublicarMensaje.addEventListener('submit', e => {
 
 
 socket.on('mensajes', mensajes => {
+    console.log('ESTOS SON LOS MENSAJES RECIBIDOS EN EL FRONT', mensajes)
     console.log(mensajes)
-    const html = makeHtmlList(mensajes)
+    //const objeto = {entities: mensajes[0].entities, result: mensajes[0].result}
+    // Aquí debo desnormalizar //
+        // Esquema de Normalización
+        const user = new normalizr.schema.Entity("users");
+        const text = new normalizr.schema.Entity("text");
+        const mensaje = new normalizr.schema.Entity("mensaje", {
+        autor: user,
+        text: text,
+        });
+        const mensajesSchema = new normalizr.schema.Entity("mensajes", {
+        mensajes: [mensaje],
+        });
+
+        //Desnormalizo
+        const denormalizedMensajes = normalizr.denormalize(mensajes[0].result[0], mensajesSchema, mensajes[0].entities[0]);
+        console.log('ESTOS SON LOS MENSAJES DESNORMALIZADOS', denormalizedMensajes)
+        let compresion = Number(JSON.stringify(mensajes).length)/ Number(JSON.stringify(denormalizedMensajes.mensajes).length)
+        compresion = Math.round(compresion*100)
+        document.getElementById('compresion').innerHTML = `(Compresión ${compresion}%)`
+
+    const html = makeHtmlList(denormalizedMensajes.mensajes)
     document.getElementById('mensajes').innerHTML = html;
 })
 
@@ -64,9 +85,9 @@ function makeHtmlList(mensajes) {
     return mensajes.map(mensaje => {
         return (`
             <div>
-                <b style="color:blue;">${mensaje.autor}</b>
-                [<span style="color:brown;">${mensaje.fyh}</span>] :
-                <i style="color:green;">${mensaje.texto}</i>
+                <b style="color:blue;">${mensaje.autor.id}</b>
+                [<span style="color:brown;">${mensaje.date}</span>] :
+                <i style="color:green;">${mensaje.text.text}</i>
             </div>
         `)
     }).join(" ");

@@ -1,3 +1,4 @@
+const { truncateSync } = require('fs');
 const mongoose = require('mongoose');
 const { denormalize, normalize, schema } = require('normalizr');
 const util = require('util');
@@ -8,7 +9,6 @@ const url = 'mongodb://localhost:27017/ecommerce';
 function print(objeto) {
   console.log(util.inspect(objeto,false,12,true))
 }
-
 
 const user = new schema.Entity("users");
 
@@ -21,36 +21,44 @@ const mensaje = new schema.Entity("mensaje", {
   text: text,
 });
 
-const mensajes = new schema.Entity("mensajes", {
+const mensajesSchema = new schema.Entity("mensajes", {
   mensajes: [mensaje],
 });
+
+
 //Creo esquema de mongoose para guardar datos normalizdos (normalizaData)
+/* Nunca me funciono este Schema detallado
 const esquemaMensaje = new mongoose.Schema({
   entities: {
-    users: { 
-      id: { type: String, require: true, max: 1000 },
-      nombre: { type: String, require: true, max: 1000 },
-      apellido: { type: String, require: true, max: 1000 },
-      edad: { type: String, require: true, max: 1000 },
-      alias: { type: String, require: true, max: 1000 },
-      avatar: { type: String, require: true, max: 1000 },
-     },
+    users: {
+      id: { type: String},
+      nombre: { type: String},
+      apellido: { type: String},
+      edad: { type: String},
+      alias: { type: String},
+      avatar: { type: String},
+    },
     text: { 
-      id: { type: Number, require: true },
-      text: { type: String, require: true, max: 1000 },
+      id: String,
+      text: String,
      },
     mensaje: { 
-      id: { type: Number, require: true },
-      autor: { type: String, require: true, max: 1000 },
-      text: { type: Number, require: true },
-      date: { type: String, require: true, max: 1000 },
+      id: { type: String },
+      autor: { type: String},
+      text: { type: Number },
      },
     mensajes: { 
-      id: { type: String, require: true, max: 1000 },
-      mensajes: { type: Number, require: true },
+      id: { type: String},
+      mensajes: [],
      },
   },
-  result: { type: String, require: true, max: 1000 },
+  result: {type: String},
+})
+*/
+// Este Schema funciona
+const esquemaMensaje = new mongoose.Schema({
+  entities: {type: [Object], blackbox: true},
+  result: {type: String},
 })
 
 const daoMensajes = mongoose.model('mensajes', esquemaMensaje)
@@ -69,8 +77,8 @@ class ContenedorMongoDB {
   async guardar(data) {
     try {
       console.log("HOLA", data)
-      const saveModel = new daoMensajes(data)
-      const objectSaved = await saveModel.save()
+      await daoMensajes.deleteMany({})
+      const saveModel = await daoMensajes.create(data)
     } catch (err) {
       console.log(err);
     }
@@ -79,7 +87,8 @@ class ContenedorMongoDB {
   async listarAll() {
     try {
       const res = await daoMensajes.find({})
-      console.log('CAHO', res)
+      const json = JSON.stringify(res)
+      console.log('CHAO', json)
       return res
 
     } catch (err) {
